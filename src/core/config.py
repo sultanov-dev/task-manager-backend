@@ -9,7 +9,10 @@ class Settings(BaseSettings):
     ENVIRONMENT: Literal["development", "production"] = "development"
     API_PREFIX: str = "/api/v1"
 
-    ATABASE_URL: str = ""
+    DATABASE_URL: str = (
+        "postgresql+asyncpg://postgres:123456@localhost:15432/task-manager-db"
+    )
+
     SECRET_KEY: str = ""
 
     model_config = SettingsConfigDict(
