@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api/v1"
 
     DATABASE_URL: str = (
-        "postgresql+asyncpg://postgres:123456@localhost:15432/task-manager-db"
+        "postgresql+asyncpg://postgres:123456@localhost:5432/task-manager-db"
     )
 
     SECRET_KEY: str = ""

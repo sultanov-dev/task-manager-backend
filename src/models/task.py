@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy import Enum as SQLEnum
@@ -6,10 +7,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import Base, TimestampMixin
 from src.models.enums import Priority, TaskStatus
-from src.models.users import UsersModel
+
+if TYPE_CHECKING:
+    from src.models.users import UsersModel
 
 
-class TasksModel(Base):
+class TasksModel(TimestampMixin, Base):
     __tablename__ = "tasks"
 
     title: Mapped[str] = mapped_column(String(255))
@@ -29,6 +32,3 @@ class TasksModel(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     user: Mapped["UsersModel"] = relationship(back_populates="tasks")
-
-    created_at = TimestampMixin.created_at
-    upadated_at = TimestampMixin.updated_at

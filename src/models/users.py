@@ -1,11 +1,15 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import Base, TimestampMixin
-from src.models.task import TasksModel
+
+if TYPE_CHECKING:
+    from src.models.task import TasksModel
 
 
-class UsersModel(Base):
+class UsersModel(TimestampMixin, Base):
     __tablename__ = "users"
 
     name: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -13,9 +17,6 @@ class UsersModel(Base):
     hashed_password: Mapped[str] = mapped_column(String(100), nullable=False)
 
     tasks: Mapped[list["TasksModel"]] = relationship(
-        back_populates="users",
+        back_populates="user",
         cascade="all, delete-orphan",
     )
-
-    created_at = TimestampMixin.created_at
-    upadated_at = TimestampMixin.updated_at
