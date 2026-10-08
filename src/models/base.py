@@ -1,12 +1,13 @@
+import uuid
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime, Uuid, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
-    id: Mapped[str] = mapped_column(primary_key=True, default=uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
 
 
 class TimestampMixin:

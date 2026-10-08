@@ -14,7 +14,7 @@ class UsersModel(TimestampMixin, Base):
 
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     email: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String(100), nullable=False)
+    password: Mapped[str] = mapped_column(String(100), nullable=False)
 
     tasks: Mapped[list["TasksModel"]] = relationship(
         back_populates="user",

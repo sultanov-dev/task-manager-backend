@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
+from src.api.user import router as user_router
 from src.core.config import settings
 from src.database import engine
 from src.models.base import Base
@@ -27,3 +28,6 @@ app = FastAPI(
 @app.get("/health")
 def health():
     return Response(status_code=200)
+
+
+app.include_router(user_router, prefix="/api/v1", tags=["auth"])
