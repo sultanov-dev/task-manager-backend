@@ -13,7 +13,7 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://postgres:123456@localhost:5432/task-manager-db"
     )
 
-    SECRET_KEY: str = ""
+    SECRET_KEY: str = "juda-kuchli-sirli-kalit"
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"

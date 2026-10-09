@@ -18,14 +18,7 @@ class RegisterSchema(BaseModel):
 
 class LoginSchema(BaseModel):
     email: EmailStr
-    password: str = Field(..., min_length=6)
-
-    @field_validator("password")
-    @classmethod
-    def check_password(cls, v: str) -> str:
-        if len(v) < 6:
-            raise ValueError("Parol kamida 6 belgidan iborat bo'lishi kerak")
-        return v
+    password: str
 
 
 class RegisterResponse(BaseModel):
@@ -34,3 +27,9 @@ class RegisterResponse(BaseModel):
     email: EmailStr
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: RegisterResponse
