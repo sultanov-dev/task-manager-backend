@@ -32,3 +32,7 @@ def create_refresh_token(user_id: str) -> str:
     payload = {"sub": user_id, "type": "refresh", "exp": expire}
 
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
+
+
+def decode_jwt(token: str) -> dict:
+    return jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])

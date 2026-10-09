@@ -1,10 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Cookie, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import get_db
-from src.schemas.auth import LoginSchema, RegisterSchema, TokenResponse
+from src.schemas.auth import AccessTokenRes, LoginSchema, RegisterSchema, TokenResponse
 from src.services import users as user_service
 
 router = APIRouter()
@@ -30,3 +30,12 @@ async def user_login(
     payload: LoginSchema,
 ):
     return await user_service.user_login(db, response, payload)
+
+
+@router.post("/auth/refresh", response_model=AccessTokenRes)
+async def new_refresh(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    response: Response,
+    refresh_token: Annotated[str | None, Cookie()] = None,
+):
+    return await user_service.new_refresh(db, response, refresh_token)
