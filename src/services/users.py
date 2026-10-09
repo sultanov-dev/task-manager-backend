@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import Cookie, Depends, HTTPException, Response, status
@@ -6,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import get_db
+from src.models.refresh_token import RefreshTokenModel
 from src.models.users import UsersModel
 from src.schemas.auth import (
     AccessTokenRes,
@@ -46,9 +48,16 @@ async def user_register(
     await db.refresh(new_user)
 
     access_token = create_access_token(str(new_user.id))
-    refresh_token = create_refresh_token(str(new_user.id))
+    token, jti, expire = create_refresh_token(str(new_user.id))
 
-    set_refresh_token(refresh_token=refresh_token, response=response)
+    token_database = RefreshTokenModel(
+        user_id=new_user.id, jti=jti, expires_at=expire, revoked_at=None
+    )
+    db.add(token_database)
+    await db.commit()
+    await db.refresh(token_database)
+
+    set_refresh_token(refresh_token=token, response=response)
 
     return TokenResponse(
         access_token=access_token, user=RegisterResponse.model_validate(new_user)
@@ -70,9 +79,16 @@ async def user_login(
         )
 
     access_token = create_access_token(str(user.id))
-    refresh_token = create_refresh_token(str(user.id))
+    token, jti, expire = create_refresh_token(str(user.id))
 
-    set_refresh_token(refresh_token=refresh_token, response=response)
+    db_refresh_token = RefreshTokenModel(
+        user_id=user.id, jti=jti, expires_at=expire, revoked_at=None
+    )
+    db.add(db_refresh_token)
+    await db.commit()
+    await db.refresh(db_refresh_token)
+
+    set_refresh_token(refresh_token=token, response=response)
 
     return TokenResponse(
         access_token=access_token, user=RegisterResponse.model_validate(user)
@@ -106,15 +122,68 @@ async def new_refresh(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token turi xato"
         )
 
-    user = await db.get(UsersModel, str(payload["sub"]))
+    user_id = payload.get("sub")
+    jti = payload.get("jti")
+
+    if not user_id or not jti:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token ma'lumotlari yetarli emas",
+        )
+
+    jti_result = await db.execute(
+        select(RefreshTokenModel)
+        .where(
+            RefreshTokenModel.jti == payload.get("jti"),
+            RefreshTokenModel.user_id == user_id,
+        )
+        .with_for_update()
+    )
+    stored_token = jti_result.scalar_one_or_none()
+
+    if not stored_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found or revoked",
+        )
+
+    if stored_token.revoked_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has been revoked",
+        )
+
+    now = datetime.now(timezone.utc)
+    expires_at = stored_token.expires_at
+
+    if expires_at.tzinfo is not None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    else:
+        expires_at = expires_at.astimezone(timezone.utc)
+
+    if expires_at <= now:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token has expired"
+        )
+
+    user = await db.get(UsersModel, str(user_id))
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Foydalanuvchi topilmadi"
         )
 
-    access_token = create_access_token(str(user.id))
-    new_refresh_token = create_refresh_token(str(user.id))
+    stored_token.revoked_at = now
 
-    set_refresh_token(new_refresh_token, response)
+    access_token = create_access_token(str(user.id))
+    token, jti, expire = create_refresh_token(str(user.id))
+
+    new_token = RefreshTokenModel(
+        user_id=user.id, jti=jti, expires_at=expire, revoked_at=None
+    )
+    db.add(new_token)
+    await db.commit()
+    await db.refresh(new_token)
+
+    set_refresh_token(token, response)
 
     return AccessTokenRes(access_token=access_token)
