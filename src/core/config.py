@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     )
 
     SECRET_KEY: str = "juda-kuchli-sirli-kalit"
+    origins: list[str] = ["*"]
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"

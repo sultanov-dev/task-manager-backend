@@ -6,7 +6,7 @@ from jwt import ExpiredSignatureError, PyJWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.dependencies import get_db
+from src.dependencies import get_current_user, get_db
 from src.models.refresh_token import RefreshTokenModel
 from src.models.users import UsersModel
 from src.schemas.auth import (
@@ -23,7 +23,7 @@ from src.security import (
     hash_password,
     verify_password,
 )
-from src.utils import set_refresh_token
+from src.utils import delete_cookie, set_refresh_token
 
 
 async def user_register(
@@ -141,13 +141,7 @@ async def new_refresh(
     )
     stored_token = jti_result.scalar_one_or_none()
 
-    if not stored_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token not found or revoked",
-        )
-
-    if stored_token.revoked_at is not None:
+    if not stored_token or stored_token.revoked_at is not None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token has been revoked",
@@ -187,3 +181,53 @@ async def new_refresh(
     set_refresh_token(token, response)
 
     return AccessTokenRes(access_token=access_token)
+
+
+async def logout(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    response: Response,
+    current_user: Annotated[UsersModel, Depends(get_current_user)],
+    refresh_token: Annotated[str | None, Cookie()] = None,
+) -> Response:
+    if not refresh_token:
+        delete_cookie()
+        return response
+
+    try:
+        payload = decode_jwt(refresh_token)
+    except (PyJWTError, ExpiredSignatureError):
+        delete_cookie()
+        return response
+
+    if payload.get("type") != "refresh":
+        delete_cookie()
+        return response
+
+    user_id = payload.get("sub")
+    jti = payload.get("jti")
+
+    if not user_id or not jti:
+        delete_cookie()
+        return response
+
+    if str(user_id) != str(current_user.id):
+        delete_cookie()
+        return response
+
+    result = await db.execute(
+        select(RefreshTokenModel)
+        .where(RefreshTokenModel.jti == jti, RefreshTokenModel.user_id == user_id)
+        .with_for_update()
+    )
+
+    stored_token = result.scalar_one_or_none()
+
+    if stored_token and stored_token.revoked_at is None:
+        now = datetime.now(timezone.utc)
+        stored_token.revoked_at = now
+
+        await db.commit()
+
+    delete_cookie()
+
+    return response
