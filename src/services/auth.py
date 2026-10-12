@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import Cookie, Depends, HTTPException, Response, status
+from fastapi import Depends, HTTPException, Response, status
 from jwt import ExpiredSignatureError, PyJWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

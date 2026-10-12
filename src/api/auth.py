@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import get_current_user, get_db, get_refresh_token
@@ -8,11 +8,11 @@ from src.models.auth import UsersModel
 from src.schemas.auth import AccessTokenRes, LoginSchema, RegisterSchema, TokenResponse
 from src.services import auth as user_service
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 @router.post(
-    "/auth/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED
+    "/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED
 )
 async def user_register(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -22,9 +22,7 @@ async def user_register(
     return await user_service.user_register(db, response, payload)
 
 
-@router.post(
-    "/auth/login", response_model=TokenResponse, status_code=status.HTTP_200_OK
-)
+@router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def user_login(
     db: Annotated[AsyncSession, Depends(get_db)],
     response: Response,
@@ -33,7 +31,7 @@ async def user_login(
     return await user_service.user_login(db, response, payload)
 
 
-@router.post("/auth/refresh", response_model=AccessTokenRes)
+@router.post("/refresh", response_model=AccessTokenRes)
 async def new_refresh(
     db: Annotated[AsyncSession, Depends(get_db)],
     response: Response,
@@ -43,7 +41,7 @@ async def new_refresh(
 
 
 @router.post(
-    "/auth/logout",
+    "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def logout(

@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import HTTPException, status
 from fastapi.params import Cookie, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jwt import PyJWTError
+from jwt import ExpiredSignatureError, PyJWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,7 +35,7 @@ async def get_current_user(
 
     try:
         payload = decode_jwt(token)
-    except PyJWTError:
+    except (PyJWTError, ExpiredSignatureError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token yaroqsiz yoki muddati tugagan",
