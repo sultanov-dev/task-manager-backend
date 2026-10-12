@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import get_current_user, get_db
 from src.models.auth import UsersModel
+from src.models.task import TasksModel
 from src.schemas.tasks import TaskSchema
 from src.services import tasks as tasks_service
 
@@ -18,3 +19,13 @@ async def task_create(
     payload: TaskSchema,
 ):
     return await tasks_service.task_create(db, current_user, payload)
+
+
+@router.get(
+    "/", response_model=dict[str, list[TaskSchema]], status_code=status.HTTP_200_OK
+)
+async def get_tasks(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[UsersModel, Depends(get_current_user)],
+):
+    return await tasks_service.get_tasks(db, current_user)

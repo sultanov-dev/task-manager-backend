@@ -1,7 +1,9 @@
+from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import HTTPException, status
 from fastapi.params import Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import get_current_user, get_db
@@ -34,3 +36,17 @@ async def task_create(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to create task"
         ) from e
+
+
+async def get_tasks(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[UsersModel, Depends(get_current_user)],
+) -> dict[str, Sequence[TasksModel]]:
+    user_id = current_user.id
+    result = await db.execute(
+        select(TasksModel).where(TasksModel.user_id == str(user_id))
+    )
+
+    tasks = result.scalars().all()
+
+    return {"tasks": tasks}
