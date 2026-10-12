@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Cookie, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.dependencies import get_current_user, get_db
-from src.models.users import UsersModel
+from src.dependencies import get_current_user, get_db, get_refresh_token
+from src.models.auth import UsersModel
 from src.schemas.auth import AccessTokenRes, LoginSchema, RegisterSchema, TokenResponse
 from src.services import auth as user_service
 
@@ -37,7 +37,7 @@ async def user_login(
 async def new_refresh(
     db: Annotated[AsyncSession, Depends(get_db)],
     response: Response,
-    refresh_token: Annotated[str | None, Cookie()] = None,
+    refresh_token: Annotated[str, Depends(get_refresh_token)],
 ):
     return await user_service.new_refresh(db, response, refresh_token)
 
@@ -50,6 +50,6 @@ async def logout(
     db: Annotated[AsyncSession, Depends(get_db)],
     response: Response,
     current_user: Annotated[UsersModel, Depends(get_current_user)],
-    refresh_token: Annotated[str | None, Cookie()] = None,
+    refresh_token: Annotated[str, Depends(get_refresh_token)],
 ):
     return await user_service.logout(db, response, current_user, refresh_token)

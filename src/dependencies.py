@@ -2,7 +2,7 @@ from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from fastapi import HTTPException, status
-from fastapi.params import Depends
+from fastapi.params import Cookie, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 from sqlalchemy import select
@@ -69,3 +69,15 @@ async def get_current_user(
         )
 
     return user
+
+
+async def get_refresh_token(
+    refresh_token: Annotated[str | None, Cookie()] = None,
+) -> str:
+    if refresh_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found",
+        )
+
+    return refresh_token

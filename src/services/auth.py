@@ -6,7 +6,7 @@ from jwt import ExpiredSignatureError, PyJWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.dependencies import get_current_user, get_db
+from src.dependencies import get_current_user, get_db, get_refresh_token
 from src.models.auth import UsersModel
 from src.models.refresh_token import RefreshTokenModel
 from src.schemas.auth import (
@@ -97,13 +97,8 @@ async def user_login(
 async def new_refresh(
     db: Annotated[AsyncSession, Depends(get_db)],
     response: Response,
-    refresh_token: Annotated[str | None, Cookie()] = None,
+    refresh_token: Annotated[str, Depends(get_refresh_token)],
 ) -> AccessTokenRes:
-    if not refresh_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token topilmadi"
-        )
-
     try:
         payload = decode_jwt(refresh_token)
     except ExpiredSignatureError:
@@ -186,7 +181,7 @@ async def logout(
     db: Annotated[AsyncSession, Depends(get_db)],
     response: Response,
     current_user: Annotated[UsersModel, Depends(get_current_user)],
-    refresh_token: Annotated[str | None, Cookie()] = None,
+    refresh_token: Annotated[str, Depends(get_refresh_token)],
 ) -> Response:
     if not refresh_token:
         delete_cookie()
