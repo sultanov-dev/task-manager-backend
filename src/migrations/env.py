@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from src.core.config import settings
 from src.models.auth import UsersModel  # noqa: F401
 from src.models.base import Base
+from src.models.refresh_token import RefreshTokenModel  # noqa: F401
 from src.models.task import TasksModel  # noqa: F401
 
 # this is the Alembic Config object, which provides
