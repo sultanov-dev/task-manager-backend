@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import async_session
-from src.models.users import UsersModel
+from src.models.auth import UsersModel
 from src.security import decode_jwt
 
 

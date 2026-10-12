@@ -9,7 +9,7 @@ from src.models.base import Base, TimestampMixin
 from src.models.enums import Priority, TaskStatus
 
 if TYPE_CHECKING:
-    from src.models.users import UsersModel
+    from src.models.auth import UsersModel
 
 
 class TasksModel(TimestampMixin, Base):

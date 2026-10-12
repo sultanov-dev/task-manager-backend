@@ -7,8 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import get_current_user, get_db
+from src.models.auth import UsersModel
 from src.models.refresh_token import RefreshTokenModel
-from src.models.users import UsersModel
 from src.schemas.auth import (
     AccessTokenRes,
     LoginSchema,
@@ -44,8 +44,6 @@ async def user_register(
     new_user = UsersModel(name=data.name, email=data.email, password=hashed_password)
 
     db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
 
     access_token = create_access_token(str(new_user.id))
     token, jti, expire = create_refresh_token(str(new_user.id))
@@ -55,6 +53,7 @@ async def user_register(
     )
     db.add(token_database)
     await db.commit()
+    await db.refresh(new_user)
     await db.refresh(token_database)
 
     set_refresh_token(refresh_token=token, response=response)
