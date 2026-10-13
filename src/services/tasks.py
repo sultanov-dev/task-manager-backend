@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.dependencies import get_current_user, get_db
 from src.models.auth import UsersModel
 from src.models.task import TasksModel
-from src.schemas.tasks import TaskSchema
+from src.schemas.tasks import TaskRequest, TaskResponse, TaskSchema
 
 
 async def task_create(
@@ -77,3 +77,38 @@ async def get_one_task(
         )
 
     return {"task": TaskSchema.model_validate(task)}
+
+
+async def update_task(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[UsersModel, Depends(get_current_user)],
+    task_id: Annotated[UUID, Path(description="ID bo'yicha bitta taskni qaytaradi")],
+    data: TaskRequest,
+) -> dict[str, TaskResponse]:
+    try:
+        result = await db.execute(
+            select(TasksModel).where(
+                TasksModel.id == task_id, TasksModel.user_id == str(current_user.id)
+            )
+        )
+
+        task = result.scalar_one_or_none()
+        if not task:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Task topilmadi"
+            )
+
+        update_task = data.model_dump(exclude_unset=True)
+
+        for key, value in update_task.items():
+            setattr(task, key, value)
+
+        await db.commit()
+        await db.refresh(task)
+
+        return {"task": TaskResponse.model_validate(task)}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update task"
+        ) from e
