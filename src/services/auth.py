@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Response, status
@@ -102,14 +102,10 @@ async def new_refresh(
 ) -> AccessTokenRes:
     try:
         payload = decode_jwt(refresh_token)
-    except ExpiredSignatureError:
+    except (ExpiredSignatureError, PyJWTError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token eskirgan, qayta login qilish kerak",
-        )
-    except PyJWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token yaroqsiz"
+            detail="Refresh token eskirgan, yoki yaroqsiz",
         )
 
     if payload.get("type") != "refresh":
@@ -142,13 +138,13 @@ async def new_refresh(
             detail="Refresh token has been revoked",
         )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expires_at = stored_token.expires_at
 
     if expires_at.tzinfo is not None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
+        expires_at = expires_at.replace(tzinfo=UTC)
     else:
-        expires_at = expires_at.astimezone(timezone.utc)
+        expires_at = expires_at.astimezone(UTC)
 
     if expires_at <= now:
         raise HTTPException(
@@ -218,7 +214,7 @@ async def logout(
     stored_token = result.scalar_one_or_none()
 
     if stored_token and stored_token.revoked_at is None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         stored_token.revoked_at = now
 
         await db.commit()
