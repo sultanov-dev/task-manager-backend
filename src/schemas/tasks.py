@@ -33,3 +33,8 @@ class TaskResponse(BaseModel):
     due_date: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TaskFilters(BaseModel):
+    status: TaskStatus | None = None
+    priority: Priority | None = None

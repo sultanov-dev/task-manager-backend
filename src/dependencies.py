@@ -2,7 +2,7 @@ from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from fastapi import HTTPException, status
-from fastapi.params import Cookie, Depends
+from fastapi.params import Cookie, Depends, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import ExpiredSignatureError, PyJWTError
 from sqlalchemy import select
@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import async_session
 from src.models.auth import UsersModel
+from src.models.enums import Priority, TaskStatus
+from src.schemas.tasks import TaskFilters
 from src.security import decode_jwt
 
 
@@ -81,3 +83,10 @@ async def get_refresh_token(
         )
 
     return refresh_token
+
+
+def get_filters(
+    status: Annotated[TaskStatus | None, Query(alias="status")] = None,
+    priority: Annotated[Priority | None, Query(alias="priority")] = None,
+) -> TaskFilters:
+    return TaskFilters(status=status, priority=priority)

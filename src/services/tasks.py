@@ -7,10 +7,10 @@ from fastapi.params import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.dependencies import get_current_user, get_db
+from src.dependencies import get_current_user, get_db, get_filters
 from src.models.auth import UsersModel
 from src.models.task import TasksModel
-from src.schemas.tasks import TaskRequest, TaskResponse, TaskSchema
+from src.schemas.tasks import TaskFilters, TaskRequest, TaskResponse, TaskSchema
 
 
 async def task_create(
@@ -42,12 +42,18 @@ async def task_create(
 async def get_tasks(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[UsersModel, Depends(get_current_user)],
+    filters: Annotated[TaskFilters, Depends(get_filters)],
 ) -> dict[str, Sequence[TasksModel]]:
     user_id = current_user.id
-    result = await db.execute(
-        select(TasksModel).where(TasksModel.user_id == str(user_id))
-    )
+    query = select(TasksModel).where(TasksModel.user_id == str(user_id))
 
+    if filters.status is not None:
+        query = query.where(TasksModel.status == filters.status)
+
+    if filters.priority is not None:
+        query = query.where(TasksModel.priority == filters.priority)
+
+    result = await db.execute(query)
     tasks = result.scalars().all()
 
     return {"tasks": tasks}

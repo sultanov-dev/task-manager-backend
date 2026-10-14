@@ -4,9 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.dependencies import get_current_user, get_db
+from src.dependencies import get_current_user, get_db, get_filters
 from src.models.auth import UsersModel
-from src.schemas.tasks import TaskRequest, TaskResponse, TaskSchema
+from src.schemas.tasks import TaskFilters, TaskRequest, TaskResponse, TaskSchema
 from src.services import tasks as tasks_service
 
 router = APIRouter(prefix="/api/v1/tasks", tags=["tasks"])
@@ -27,8 +27,9 @@ async def task_create(
 async def get_tasks(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[UsersModel, Depends(get_current_user)],
+    filters: Annotated[TaskFilters, Depends(get_filters)],
 ):
-    return await tasks_service.get_tasks(db, current_user)
+    return await tasks_service.get_tasks(db, current_user, filters)
 
 
 @router.get(
