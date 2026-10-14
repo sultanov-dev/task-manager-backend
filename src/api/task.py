@@ -52,3 +52,12 @@ async def update_task(
     payload: TaskRequest,
 ):
     return await tasks_service.update_task(db, current_user, task_id, payload)
+
+
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[UsersModel, Depends(get_current_user)],
+    task_id: Annotated[UUID, Path(description="ID bo'yicha bitta taskni o'chiradi")],
+):
+    return await tasks_service.delete_task(db, current_user, task_id)

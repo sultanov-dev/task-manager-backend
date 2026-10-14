@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import HTTPException, Path, status
+from fastapi import HTTPException, Path, Response, status
 from fastapi.params import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -107,6 +107,38 @@ async def update_task(
         await db.refresh(task)
 
         return {"task": TaskResponse.model_validate(task)}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update task"
+        ) from e
+
+
+async def delete_task(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[UsersModel, Depends(get_current_user)],
+    task_id: Annotated[UUID, Path(description="ID bo'yicha bitta taskni o'chiradi")],
+):
+    try:
+        result = await db.execute(
+            select(TasksModel).where(
+                TasksModel.id == task_id, TasksModel.user_id == str(current_user.id)
+            )
+        )
+        task = result.scalar_one_or_none()
+
+        if task is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Task topilmadi"
+            )
+
+        await db.delete(task)
+        await db.commit()
+
+        response = Response()
+        response.status_code = status.HTTP_204_NO_CONTENT
+
+        return response
 
     except Exception as e:
         raise HTTPException(
