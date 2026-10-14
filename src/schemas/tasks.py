@@ -38,3 +38,16 @@ class TaskResponse(BaseModel):
 class TaskFilters(BaseModel):
     status: TaskStatus | None = None
     priority: Priority | None = None
+    page: int = 1
+    limit: int = 10
+
+
+class PaginationRes(BaseModel):
+    page: int
+    limit: int
+    totalPages: int
+
+
+class TaskListRes(BaseModel):
+    data: list[TaskSchema]
+    meta: PaginationRes

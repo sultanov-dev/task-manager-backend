@@ -88,5 +88,7 @@ async def get_refresh_token(
 def get_filters(
     status: Annotated[TaskStatus | None, Query(alias="status")] = None,
     priority: Annotated[Priority | None, Query(alias="priority")] = None,
+    page: Annotated[int, Query(alias="page", ge=1)] = 1,
+    limit: Annotated[int, Query(alias="limit", ge=10, le=50)] = 10,
 ) -> TaskFilters:
-    return TaskFilters(status=status, priority=priority)
+    return TaskFilters(status=status, priority=priority, page=page, limit=limit)

@@ -1,16 +1,22 @@
+import math
 from collections.abc import Sequence
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import HTTPException, Path, Response, status
 from fastapi.params import Depends
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import get_current_user, get_db, get_filters
 from src.models.auth import UsersModel
 from src.models.task import TasksModel
-from src.schemas.tasks import TaskFilters, TaskRequest, TaskResponse, TaskSchema
+from src.schemas.tasks import (
+    TaskFilters,
+    TaskRequest,
+    TaskResponse,
+    TaskSchema,
+)
 
 
 async def task_create(
@@ -43,20 +49,48 @@ async def get_tasks(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[UsersModel, Depends(get_current_user)],
     filters: Annotated[TaskFilters, Depends(get_filters)],
-) -> dict[str, Sequence[TasksModel]]:
+) -> dict[str, Sequence[TasksModel] | dict[str, int]]:
     user_id = current_user.id
     query = select(TasksModel).where(TasksModel.user_id == str(user_id))
+    count_query = (
+        select(func.count())
+        .select_from(TasksModel)
+        .where(TasksModel.user_id == str(user_id))
+    )
 
     if filters.status is not None:
         query = query.where(TasksModel.status == filters.status)
+        count_query = count_query.where(TasksModel.status == filters.status)
 
     if filters.priority is not None:
         query = query.where(TasksModel.priority == filters.priority)
+        count_query = count_query.where(TasksModel.priority == filters.priority)
+
+    total = await db.scalar(count_query) or 0
+    total_pages = math.ceil(total / filters.limit)
+    offset = (filters.page - 1) * filters.limit
+
+    if filters.page > total_pages and total > 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Bunday sahifa mavjud emas",
+        )
+
+    query = (
+        query.order_by(TasksModel.created_at.desc()).limit(filters.limit).offset(offset)
+    )
 
     result = await db.execute(query)
     tasks = result.scalars().all()
 
-    return {"tasks": tasks}
+    return {
+        "data": tasks,
+        "meta": {
+            "page": filters.page,
+            "limit": filters.limit,
+            "totalPages": total_pages,
+        },
+    }
 
 
 async def get_one_task(
